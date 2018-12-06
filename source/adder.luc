@@ -1,0 +1,31 @@
+module adder (
+    input alufn[6],  // clock
+    input a[16],  // reset
+    input b[16],
+    output sum1[16],
+    output v,
+    output z,
+    output n
+  ) {
+  
+  sig sum[16];
+
+  always {
+    
+    case(alufn[0]){
+        b0:
+          sum = a+b;
+          v = (((a[15])&(b[15])&(~sum[15])) | ((~a[15])&(~b[15])&(sum[15])));
+        b1:
+          sum = a-b;
+          v = (((a[15])&(~b[15])&(~sum[15])) | ((~a[15])&(b[15])&(sum[15])));
+        default:
+          sum = a+b; 
+          v = (((a[15])&(b[15])&(~sum[15])) | ((~a[15])&(~b[15])&(sum[15])));     
+    }
+        
+    sum1 = sum[15:0];    
+    z = ~|sum;
+    n = sum[15];
+  }
+}

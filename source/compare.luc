@@ -1,0 +1,27 @@
+module compare (
+    input alufn[6],
+    input v,
+    input z,
+    input n,
+    output cmp1[16]
+  ) {
+  
+  sig cmp;
+  
+  always {
+    
+    case(alufn[2:1]){
+      b01:
+        cmp = z;
+      b10:
+        cmp = n^v;
+      b11:
+        cmp = z|(n^v);     
+      default:
+        cmp = b0;
+    }
+    
+    cmp1[15:1] = 15b0;
+    cmp1[0] = cmp;
+  }
+}

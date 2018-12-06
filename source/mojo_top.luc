@@ -1,0 +1,373 @@
+module mojo_top (
+    input clk,              // 50MHz clock
+    input rst_n,            // reset button (active low)
+    output led [8],         // 8 user controllable LEDs
+    input cclk,             // configuration clock, AVR ready when high
+    output spi_miso,        // AVR SPI MISO
+    input spi_ss,           // AVR SPI Slave Select
+    input spi_mosi,         // AVR SPI MOSI
+    input spi_sck,          // AVR SPI Clock
+    output spi_channel [4], // AVR general purpose pins (used by default to select ADC channel)
+    input avr_tx,           // AVR TX (FPGA RX)
+    output avr_rx,          // AVR RX (FPGA TX)
+    input avr_rx_busy,      // AVR RX buffer full
+    output io_led [3][8],   // LEDs on IO Shield
+    output io_seg [8],      // 7-segment LEDs on IO Shield
+    output io_sel [4],      // Digit select on IO Shield
+    input io_button [5],    // 5 buttons on IO Shield
+    input io_dip [3][8],    // DIP switches on IO Shield
+    output strip1,
+    output strip2,
+    output strip3,
+    output strip4,
+    input button1a,
+    input button1b,
+    input button2a,
+    input button2b,
+    input resetbutton
+    ) {
+  
+  sig rst;                  // reset signal
+  
+  .clk(clk) {
+    // The reset conditioner is used to synchronize the reset signal to the FPGA
+    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    
+    button_conditioner c0;
+    button_conditioner c1;
+    button_conditioner c2;
+    button_conditioner c3;
+    button_conditioner cr;
+    edge_detector e0(#RISE(1), #FALL(0));
+    edge_detector e1(#RISE(1), #FALL(0));
+    edge_detector e2(#RISE(1), #FALL(0));
+    edge_detector e3(#RISE(1), #FALL(0));
+    edge_detector er(#RISE(1), #FALL(0));
+    
+    reset_conditioner reset_cond;
+      
+    
+    .rst(rst){
+      dff counter1[8];
+      dff counter2[8];
+      dff movecount1[27];
+      dff movecount2[27];
+      dff currenta1[16];
+      dff currenta2[16];
+      dff secondmove[1];
+      dff firstmove[1];
+      dff delay1[1];
+      dff delay2[1];
+      dff lives1[2];
+      dff lives2[2];
+      dff win1[4];
+      dff win2[4];
+      
+      
+
+      fsm state = {START, PLAY, FIRSTPRESSONE, FIRSTPRESSZERO, SECONDPRESSONE, SECONDPRESSZERO, SHIFTDOWN, END, WINONE, WINTWO};
+      multi_seven_seg seg;
+      ledchange rgbled1;
+      ledchange rgbled2;
+      ledchange2 rgblives1;
+      ledchange2 rgblives2;
+      ledwinner rgbwinner1;
+      ledwinner rgbwinner2;
+      
+      pn_gen random;
+    }
+  }
+  
+  
+  sig a[16];
+  sig b[16];
+  sig alufn[6];
+  sig alu[16];
+  
+  alu alumod;
+  
+  
+  
+  
+  always {
+    reset_cond.in = ~rst_n; // input raw inverted reset signal
+    rst = reset_cond.out;   // conditioned reset
+    random.seed = 32b10010101010101001010101010000101;
+    random.next = 1;
+    
+    c0.in = button1a;
+    e0.in = c0.out;
+    c1.in = button1b;
+    e1.in = c1.out;
+    c2.in = button2a;
+    e2.in = c2.out;
+    c3.in = button2b;
+    e3.in = c3.out;
+    cr.in = resetbutton;
+    er.in = cr.out;
+
+    
+    led = 8h00;             // turn LEDs off
+    spi_miso = bz;          // not using SPI
+    spi_channel = bzzzz;    // not using flags
+    avr_rx = bz;            // not using serial port
+    
+    io_led = 3x{{8h00}};    // turn LEDs off
+    io_seg = 8hff;          // turn segments off
+    io_sel = 4hf;           // select no digits
+    
+    seg.values = {5h0,5h0,5h0,5h0};
+    io_sel = ~4h0;
+
+    
+    a = 16h0;
+    b = 16h0;
+    alufn = io_dip[2][5:0];
+    
+    
+    alumod.alufn = alufn;
+    alumod.a = a;
+    alumod.b = b;
+    alu = alumod.alu;
+    
+    rgbled1.update = 1;
+    rgbled2.update = 1;
+    rgblives1.update = 1;
+    rgblives2.update = 1;
+    rgbwinner1.update = 1;
+    rgbwinner2.update = 1;
+      
+    
+    
+    case (state.q){
+     state.START:
+        currenta1.d[15:0] = 8b11111111;
+        currenta2.d[15:0] = 8b11111111;
+        if(io_dip[0][0]){
+          lives1.d = 1;     
+          lives2.d = 1;
+        } else {
+          lives1.d = 0;
+          lives2.d = 0;
+        }
+        delay1.d = 0;
+        delay2.d = 0;
+        win1.d = 0;
+        win2.d = 0;
+        if(er.out){ 
+          random.next = 1;  
+          currenta1.d[15:0] = random.num[31:16];
+          currenta2.d[15:0] = random.num[15:0];
+          state.d = state.PLAY;
+        }
+
+          
+        
+        
+      state.PLAY:  
+        if(delay1.q == 0){
+          if(e0.out){                        //first player button 1
+            state.d = state.FIRSTPRESSONE;
+            }
+              
+          if(e2.out){                        //first player button 0
+            state.d = state.FIRSTPRESSZERO;
+            }
+        } else {
+            movecount1.d = movecount1.q + 1;
+        }
+                  
+        if(delay2.q == 0){  
+          if(e1.out){                        //second player button 1
+            state.d = state.SECONDPRESSONE;
+            }
+              
+          if(e3.out){                        //second player button 0
+            state.d = state.SECONDPRESSZERO;
+            }
+        } else {
+            movecount2.d = movecount2.q + 1;
+        }      
+        
+        if(firstmove.q){
+          currenta1.d = currenta1.q >> 1;
+          counter1.d = counter1.q + 1;
+          firstmove.d = 0;
+          io_led[1] = currenta1.q[7:0];
+          io_led[0] = currenta2.q[7:0];
+        }
+        
+        if(secondmove.q){
+          currenta2.d = currenta2.q >> 1;
+          counter2.d = counter2.q + 1;
+          secondmove.d = 0;
+          io_led[1] = currenta1.q[7:0];
+          io_led[0] = currenta2.q[7:0];
+        }
+           
+        if(counter1.q > 7){
+          win1.d = win1.q + 1;
+          if (win1.q == 14) state.d = state.WINONE;
+          io_led[2][6] = 1;
+          random.next = 1;
+          currenta1.d[15:8] = random.num[7:0];
+          counter1.d = 0;
+        }
+        
+        if(counter2.q > 7){
+          win2.d = win2.q + 1;
+          if (win2.q == 14) state.d = state.WINTWO;
+          io_led[2][7] = 1;
+          random.next = 1;
+          currenta2.d[15:8] = random.num[15:8];
+          counter2.d = 0;
+        }
+        
+
+
+        
+        if(movecount1.q[26]){
+          movecount1.d = 0;
+          delay1.d = 0;
+        }
+        
+        if(movecount2.q[26]){
+          movecount2.d = 0;
+          delay2.d = 0;
+        }
+        
+        
+        alumod.alufn = 6b110101;
+        alumod.a = 16b0;
+        alumod.b = c{14b0, lives2.q[1], lives1.q[1]};  
+        if(alumod.alu[0] == 1){
+          state.d = state.END;
+        }
+        
+        
+        
+       
+        io_led[1] = currenta1.q[7:0];
+        io_led[0] = currenta2.q[7:0];
+        
+        
+        
+      state.FIRSTPRESSONE:
+        alumod.alufn = 6b011000;
+        alumod.a = currenta1.q;
+        alumod.b = 16b1;
+        if(alumod.alu[0]==1){
+          firstmove.d = 1;
+        } else {
+          delay1.d = 1;
+          lives1.d = lives1.q + 1;
+        }
+        io_led[1] = currenta1.q[7:0];
+        io_led[0] = currenta2.q[7:0];
+        state.d = state.PLAY;
+        
+        
+      state.FIRSTPRESSZERO:
+        alumod.alufn = 6b011110;
+        alumod.a = currenta1.q;
+        alumod.b = 16b0;
+        if(alumod.alu[0] == 0){
+          firstmove.d = 1;
+        } else {
+          delay1.d = 1;
+          lives1.d = lives1.q + 1;
+        }
+        io_led[1] = currenta1.q[7:0];
+        io_led[0] = currenta2.q[7:0];
+        state.d = state.PLAY;
+        
+       
+       state.SECONDPRESSONE:
+        alumod.alufn = 6b011000;
+        alumod.a = currenta2.q;
+        alumod.b = 16b1;
+        if(alumod.alu[0]==1){
+          secondmove.d = 1;
+        } else {
+          delay2.d = 1;
+          lives2.d = lives2.q + 1;
+        }
+        io_led[1] = currenta1.q[7:0];
+        io_led[0] = currenta2.q[7:0];
+        state.d = state.PLAY;
+        
+      state.SECONDPRESSZERO:
+        alumod.alufn = 6b011110;
+        alumod.a = currenta2.q;
+        alumod.b = 16b0;
+        if(alumod.alu[0] == 0){
+          secondmove.d = 1;
+        } else {
+          delay2.d = 1;
+          lives2.d = lives2.q + 1;
+        }
+        io_led[1] = currenta1.q[7:0];
+        io_led[0] = currenta2.q[7:0];
+        state.d = state.PLAY;
+        
+      state.END:
+        if(lives1.q[1]){
+          currenta2.d = 32x{1};
+          currenta1.d = 32b0;
+          lives1.d = 3;
+          lives2.d = 0;
+        } 
+        if(lives2.q[1]) {
+          currenta1.d = 32x{1};
+          currenta2.d = 32b0;
+          lives2.d = 3;
+          lives1.d = 0;
+        }
+        if(er.out){
+          state.d = state.START;
+        }
+        
+        
+      state.WINONE:
+        currenta1.d = 32x{1};
+        currenta2.d = 32b0;
+        lives1.d = 0;
+        lives2.d = 3;
+        if(er.out){
+          state.d = state.START;
+        }
+        
+        
+      state.WINTWO:
+        currenta2.d = 32x{1};
+        currenta1.d = 32b0;
+        lives2.d = 0;
+        lives1.d = 3;
+        if(er.out){
+          state.d = state.START;
+        }
+    }
+    
+    io_led[1] = currenta1.q[7:0];
+    io_led[0] = currenta2.q[7:0];
+    io_led[2][0] = delay1.q;
+    io_led[2][1] = delay2.q;
+    io_led[2][7:4] = lives2.q;
+    rgbled1.ledinput = currenta1.q[7:0];
+    rgbled2.ledinput = currenta2.q[7:0];
+    rgbwinner1.ledinput = currenta1.q[7:0];
+    rgbwinner2.ledinput = currenta2.q[7:0];
+    strip1 = rgbled1.led;
+    strip2 = rgbled2.led;
+    rgblives1.ledinput = lives1.q;
+    rgblives2.ledinput = lives2.q;
+    strip3 = rgblives1.led;
+    strip4 = rgblives2.led;
+    
+    if((lives2.q == 3 && lives1.q == 0) || (lives2.q == 0 && lives1.q == 3)){
+      strip1 = rgbwinner1.led;
+      strip2 = rgbwinner2.led;
+    }
+  }
+  
+}

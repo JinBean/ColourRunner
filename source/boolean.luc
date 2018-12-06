@@ -1,0 +1,29 @@
+module boolean (
+    input alufn[6],  // clock
+    input a[16],  // reset
+    input b[16],
+    output bool[16]
+  ) {
+  
+  var s;
+  var i;
+
+  always {
+    for(i=0; i<16; i++){
+      s = c{b[i], a[i]};
+      case(s){
+        b00:
+          bool[i] = alufn[0];
+        b01:
+          bool[i] = alufn[1];
+        b10:
+          bool[i] = alufn[2];
+        b11:
+          bool[i] = alufn[3];
+        default:
+          bool[i] = alufn[0];
+      }
+    }
+    
+  }
+}

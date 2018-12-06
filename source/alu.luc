@@ -1,0 +1,51 @@
+module alu (
+    input alufn[6],
+    input a[16],
+    input b[16],
+    
+    output alu[16],
+    output z,
+    output v,
+    output n
+  ) {
+
+  adder add;
+  compare comp;
+  boolean boole;
+  shifter shift;
+  
+  
+  always {
+    add.a = a;
+    add.b = b;
+    add.alufn = alufn;
+    comp.v = add.v;
+    comp.n = add.n;
+    comp.z = add.z;
+    comp.alufn = alufn;
+    boole.a = a;
+    boole.b = b;
+    boole.alufn = alufn;
+    shift.a = a;
+    shift.b = b;
+    shift.alufn = alufn;
+    
+    case(alufn[5:4]){
+      b00:
+        alu = add.sum1; // selects adder output 
+      b01:
+        alu = boole.bool; // selects boolean output 
+      b10:
+        alu = shift.s; //selects shifter output
+      b11:
+        alu = comp.cmp1; //selects compare output
+      default:
+        alu = 16b0;
+  }
+    
+    z = add.z;
+    v = add.v;
+    n = add.n;
+
+  }
+}
