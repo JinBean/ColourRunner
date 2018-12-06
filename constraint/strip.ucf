@@ -1,0 +1,13 @@
+# pins for the ws2812b led strips
+# the 3 (test 1) pins are adjacent, so it's not hard to find
+NET "strip1" LOC=P58 | IOSTANDARD = LVTTL;
+NET "strip2" LOC=P67 | IOSTANDARD = LVTTL;
+NET "strip3" LOC=P74 | IOSTANDARD = LVTTL;
+NET "strip4" LOC=P78 | IOSTANDARD = LVTTL;
+NET "button1a" LOC=P123 | IOSTANDARD = LVTTL | PULLDOWN;
+NET "button1b" LOC=P131 | IOSTANDARD = LVTTL | PULLDOWN;
+NET "button2a" LOC=P133 | IOSTANDARD = LVTTL | PULLDOWN;
+NET "button2b" LOC=P137 | IOSTANDARD = LVTTL | PULLDOWN;
+NET "resetbutton" LOC=P121 | IOSTANDARD = LVTTL | PULLDOWN;
+
+NET "power" LOC=P29 | IOSTANDARD = LVTTL;
