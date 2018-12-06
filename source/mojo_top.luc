@@ -95,7 +95,7 @@ module mojo_top (
     random.seed = 32b10010101010101001010101010000101;
     random.next = 1;
     
-    c0.in = button1a;
+    c0.in = button1a;       // initialising all debounce buttons
     e0.in = c0.out;
     c1.in = button1b;
     e1.in = c1.out;
@@ -125,12 +125,12 @@ module mojo_top (
     alufn = io_dip[2][5:0];
     
     
-    alumod.alufn = alufn;
+    alumod.alufn = alufn;   //initialise alu
     alumod.a = a;
     alumod.b = b;
     alu = alumod.alu;
     
-    rgbled1.update = 1;
+    rgbled1.update = 1;     //set all leds to update
     rgbled2.update = 1;
     rgblives1.update = 1;
     rgblives2.update = 1;
@@ -141,106 +141,106 @@ module mojo_top (
     
     case (state.q){
      state.START:
-        currenta1.d[15:0] = 8b11111111;
-        currenta2.d[15:0] = 8b11111111;
-        if(io_dip[0][0]){
+        currenta1.d[15:0] = 8b11111111;                 // set default led input for player 1
+        currenta2.d[15:0] = 8b11111111;                 // set default led input for player 2
+        if(io_dip[0][0]){                               // second game mode with fewer lives
           lives1.d = 1;     
           lives2.d = 1;
-        } else {
+        } else {                                        // original game mode with two lives
           lives1.d = 0;
           lives2.d = 0;
         }
-        delay1.d = 0;
+        delay1.d = 0;                                   // reset all variables used in game
         delay2.d = 0;
         win1.d = 0;
         win2.d = 0;
         if(er.out){ 
-          random.next = 1;  
+          random.next = 1;                              // obtain first starting input
           currenta1.d[15:0] = random.num[31:16];
           currenta2.d[15:0] = random.num[15:0];
-          state.d = state.PLAY;
+          state.d = state.PLAY;                         // start game state
         }
 
           
         
         
       state.PLAY:  
-        if(delay1.q == 0){
-          if(e0.out){                        //first player button 1
-            state.d = state.FIRSTPRESSONE;
+        if(delay1.q == 0){                              // checking if player 1 pressed wrongly
+          if(e0.out){                                   // first player button 1
+            state.d = state.FIRSTPRESSONE;      
             }
               
-          if(e2.out){                        //first player button 0
+          if(e2.out){                                   // first player button 0
             state.d = state.FIRSTPRESSZERO;
             }
         } else {
             movecount1.d = movecount1.q + 1;
         }
                   
-        if(delay2.q == 0){  
-          if(e1.out){                        //second player button 1
+        if(delay2.q == 0){                              // checking if player 2 pressed wringky
+          if(e1.out){                                   // second player button 1
             state.d = state.SECONDPRESSONE;
             }
               
-          if(e3.out){                        //second player button 0
+          if(e3.out){                                   // second player button 0
             state.d = state.SECONDPRESSZERO;
             }
         } else {
             movecount2.d = movecount2.q + 1;
         }      
         
-        if(firstmove.q){
-          currenta1.d = currenta1.q >> 1;
-          counter1.d = counter1.q + 1;
-          firstmove.d = 0;
+        if(firstmove.q){                                // if player 1 button matches input
+          currenta1.d = currenta1.q >> 1;               // shift light input by one bit
+          counter1.d = counter1.q + 1;                  // increase counter for replacing input bits
+          firstmove.d = 0;                    
           io_led[1] = currenta1.q[7:0];
           io_led[0] = currenta2.q[7:0];
         }
         
-        if(secondmove.q){
-          currenta2.d = currenta2.q >> 1;
-          counter2.d = counter2.q + 1;
+        if(secondmove.q){                               // if player 2 button matches input
+          currenta2.d = currenta2.q >> 1;               // shift light input by one bit
+          counter2.d = counter2.q + 1;                  // increase counter for replacing input bits
           secondmove.d = 0;
           io_led[1] = currenta1.q[7:0];
           io_led[0] = currenta2.q[7:0];
         }
            
-        if(counter1.q > 7){
+        if(counter1.q > 7){                             // when counter reaches limit, replace input bits
           win1.d = win1.q + 1;
-          if (win1.q == 14) state.d = state.WINONE;
+          if (win1.q == 14) state.d = state.WINONE;     // change state if player completes the allocated number of button presses
           io_led[2][6] = 1;
           random.next = 1;
-          currenta1.d[15:8] = random.num[7:0];
+          currenta1.d[15:8] = random.num[7:0];          // replace input bits with new randomly generated number
           counter1.d = 0;
         }
         
-        if(counter2.q > 7){
+        if(counter2.q > 7){                             // when counter reaches limit, replace input bits
           win2.d = win2.q + 1;
-          if (win2.q == 14) state.d = state.WINTWO;
+          if (win2.q == 14) state.d = state.WINTWO;     // change state if player completes the allocated number of button presses
           io_led[2][7] = 1;
           random.next = 1;
-          currenta2.d[15:8] = random.num[15:8];
+          currenta2.d[15:8] = random.num[15:8];         // replace input bits with new randomly generated number
           counter2.d = 0;
         }
         
 
 
         
-        if(movecount1.q[26]){
+        if(movecount1.q[26]){                           // end of player 1 delay
           movecount1.d = 0;
           delay1.d = 0;
         }
         
-        if(movecount2.q[26]){
+        if(movecount2.q[26]){                           // end of player 2 delay
           movecount2.d = 0;
           delay2.d = 0;
         }
         
         
-        alumod.alufn = 6b110101;
+        alumod.alufn = 6b110101;                        // using alu to check if any player has no lives left
         alumod.a = 16b0;
         alumod.b = c{14b0, lives2.q[1], lives1.q[1]};  
-        if(alumod.alu[0] == 1){
+        if(alumod.alu[0] == 1){                         // change state if no lives left
           state.d = state.END;
         }
         
@@ -252,74 +252,74 @@ module mojo_top (
         
         
         
-      state.FIRSTPRESSONE:
-        alumod.alufn = 6b011000;
-        alumod.a = currenta1.q;
-        alumod.b = 16b1;
-        if(alumod.alu[0]==1){
+      state.FIRSTPRESSONE:                    // state for player 1 button one
+        alumod.alufn = 6b011000;              // alufn for AND function
+        alumod.a = currenta1.q;             
+        alumod.b = 16b1;        
+        if(alumod.alu[0]==1){                 // checking if button press matches input
           firstmove.d = 1;
-        } else {
-          delay1.d = 1;
-          lives1.d = lives1.q + 1;
+        } else {    
+          delay1.d = 1;                       // if not the same, delay player
+          lives1.d = lives1.q + 1;            // player loses a life
         }
         io_led[1] = currenta1.q[7:0];
         io_led[0] = currenta2.q[7:0];
         state.d = state.PLAY;
         
         
-      state.FIRSTPRESSZERO:
-        alumod.alufn = 6b011110;
+      state.FIRSTPRESSZERO:                   // state for player 1 button zero
+        alumod.alufn = 6b011110;              // alufn for AND function
         alumod.a = currenta1.q;
         alumod.b = 16b0;
-        if(alumod.alu[0] == 0){
+        if(alumod.alu[0] == 0){               // checking if button press matches input
           firstmove.d = 1;
         } else {
-          delay1.d = 1;
-          lives1.d = lives1.q + 1;
+          delay1.d = 1;                       // if not the same, delay player 
+          lives1.d = lives1.q + 1;            // player loses a life
         }
         io_led[1] = currenta1.q[7:0];
         io_led[0] = currenta2.q[7:0];
         state.d = state.PLAY;
         
        
-       state.SECONDPRESSONE:
-        alumod.alufn = 6b011000;
+       state.SECONDPRESSONE:                  // state for player two button one
+        alumod.alufn = 6b011000;              // alufn for AND function
         alumod.a = currenta2.q;
         alumod.b = 16b1;
-        if(alumod.alu[0]==1){
+        if(alumod.alu[0]==1){                 // checking if button press matches input
           secondmove.d = 1;
         } else {
-          delay2.d = 1;
-          lives2.d = lives2.q + 1;
+          delay2.d = 1;                       // if not the same, delay player
+          lives2.d = lives2.q + 1;            // player loses a life
         }
         io_led[1] = currenta1.q[7:0];
         io_led[0] = currenta2.q[7:0];
         state.d = state.PLAY;
         
-      state.SECONDPRESSZERO:
-        alumod.alufn = 6b011110;
+      state.SECONDPRESSZERO:                  // state for player two button zero
+        alumod.alufn = 6b011110;              // alufn for AND function
         alumod.a = currenta2.q;
         alumod.b = 16b0;
-        if(alumod.alu[0] == 0){
+        if(alumod.alu[0] == 0){               // checking if button press matches input
           secondmove.d = 1;
         } else {
-          delay2.d = 1;
-          lives2.d = lives2.q + 1;
+          delay2.d = 1;                       // if not the same, delay player
+          lives2.d = lives2.q + 1;            // player loses a life
         }
         io_led[1] = currenta1.q[7:0];
         io_led[0] = currenta2.q[7:0];
         state.d = state.PLAY;
         
-      state.END:
+      state.END:                            // if any player loses
         if(lives1.q[1]){
-          currenta2.d = 32x{1};
-          currenta1.d = 32b0;
+          currenta2.d = 32x{1};             // change player 2 lights
+          currenta1.d = 32b0;               // turn off player 1 lights
           lives1.d = 3;
           lives2.d = 0;
         } 
         if(lives2.q[1]) {
-          currenta1.d = 32x{1};
-          currenta2.d = 32b0;
+          currenta1.d = 32x{1};             // change player 1 lights
+          currenta2.d = 32b0;               // turn off player 2 lights
           lives2.d = 3;
           lives1.d = 0;
         }
@@ -328,23 +328,23 @@ module mojo_top (
         }
         
         
-      state.WINONE:
-        currenta1.d = 32x{1};
-        currenta2.d = 32b0;
+      state.WINONE:                         // if player 1 wins
+        currenta1.d = 32x{1};               // change player 1 lights
+        currenta2.d = 32b0;                 // turn off player 2 lights
         lives1.d = 0;
         lives2.d = 3;
         if(er.out){
-          state.d = state.START;
+          state.d = state.START;            // go back to start on button press
         }
         
         
-      state.WINTWO:
-        currenta2.d = 32x{1};
-        currenta1.d = 32b0;
+      state.WINTWO:                         // if player 2 wins
+        currenta2.d = 32x{1};               //change player 2 lights
+        currenta1.d = 32b0;                 // turn off player 1 lights
         lives2.d = 0;
         lives1.d = 3;
         if(er.out){
-          state.d = state.START;
+          state.d = state.START;            // go back to start on button press
         }
     }
     
@@ -364,7 +364,7 @@ module mojo_top (
     strip3 = rgblives1.led;
     strip4 = rgblives2.led;
     
-    if((lives2.q == 3 && lives1.q == 0) || (lives2.q == 0 && lives1.q == 3)){
+    if((lives2.q == 3 && lives1.q == 0) || (lives2.q == 0 && lives1.q == 3)){          //when game is over
       strip1 = rgbwinner1.led;
       strip2 = rgbwinner2.led;
     }
