@@ -73,7 +73,7 @@ module mojo_top (
       ledwinner rgbwinner1;
       ledwinner rgbwinner2;
       
-      pn_gen random;
+      pn_gen random;        // initialising random number generator
     }
   }
   
