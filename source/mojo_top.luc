@@ -265,7 +265,7 @@ module mojo_top (
         
         
       state.FIRSTPRESSZERO:                   // state for player 1 button zero
-        alumod.alufn = 6b011110;              // alufn for AND function
+        alumod.alufn = 6b011110;              // alufn for OR function
         alumod.a = currenta1.q;
         alumod.b = 16b0;
         if(alumod.alu[0] == 0){               // checking if button press matches input
@@ -294,7 +294,7 @@ module mojo_top (
         state.d = state.PLAY;
         
       state.SECONDPRESSZERO:                  // state for player two button zero
-        alumod.alufn = 6b011110;              // alufn for AND function
+        alumod.alufn = 6b011110;              // alufn for OR function
         alumod.a = currenta2.q;
         alumod.b = 16b0;
         if(alumod.alu[0] == 0){               // checking if button press matches input
